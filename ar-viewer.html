@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AR Food Viewer</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0D0D0D;
+    color: #F0EDE8;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Top bar - only logo, no back button */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+  }
+
+  .logo-small {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: #C9A84C;
+  }
+
+  /* Model viewer */
+  model-viewer {
+    width: 100%;
+    height: 100vh;
+    background-color: #0D0D0D;
+    --poster-color: transparent;
+  }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: #0D0D0D;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.5s;
+  }
+
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loading-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: #C9A84C;
+    margin-bottom: 1rem;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .loading-dish {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .loading-sub {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 2rem;
+  }
+
+  .progress-bar {
+    width: 200px;
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #C9A84C;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* Info panel */
+  .info-panel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 70%, transparent 100%);
+    padding: 2rem 1.5rem 2.5rem;
+    z-index: 40;
+    pointer-events: none;
+  }
+
+  .dish-info {
+    pointer-events: all;
+  }
+
+  .dish-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.3rem;
+  }
+
+  .dish-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.2rem;
+  }
+
+  .price-tag {
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.4);
+    color: #C9A84C;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  .ar-badge {
+    background: rgba(29,158,117,0.15);
+    border: 1px solid rgba(29,158,117,0.4);
+    color: #1D9E75;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ar-dot {
+    width: 6px; height: 6px;
+    background: #1D9E75;
+    border-radius: 50%;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Action buttons */
+  .actions {
+    display: flex;
+    gap: 10px;
+    pointer-events: all;
+  }
+
+  .ar-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-ar {
+    background: #C9A84C;
+    color: #0D0D0D;
+  }
+
+  .btn-ar:hover { background: #F0D080; transform: scale(1.02); }
+
+  .btn-rotate {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(8px);
+    min-width: 56px;
+    flex: 0;
+  }
+
+  .btn-rotate:hover { background: rgba(255,255,255,0.2); }
+
+  /* Hint text */
+  .hint-text {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 1rem;
+    pointer-events: all;
+  }
+
+  /* Error state */
+  .error-state {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    z-index: 110;
+    background: #0D0D0D;
+  }
+
+  .error-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+  .error-state h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: #C9A84C;
+    margin-bottom: 0.5rem;
+  }
+
+  .error-state p {
+    color: #888;
+    font-size: 14px;
+    max-width: 320px;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Close button - shown only on error */
+  .btn-close-page {
+    background: #C9A84C;
+    color: #0D0D0D;
+    padding: 12px 24px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Interaction hint */
+  .swipe-hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    z-index: 30;
+    opacity: 1;
+    transition: opacity 0.5s;
+  }
+
+  .swipe-hint.hidden { opacity: 0; }
+
+  .swipe-icon {
+    font-size: 2.5rem;
+    animation: rotate-hint 2s ease-in-out infinite;
+  }
+
+  @keyframes rotate-hint {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .swipe-hint p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-logo">✦</div>
+  <div class="loading-dish" id="loading-name">Loading dish...</div>
+  <div class="loading-sub">Preparing your AR experience</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress"></div>
+  </div>
+</div>
+
+<!-- Error State -->
+<div class="error-state" id="error-state" style="display:none;">
+  <div class="error-icon">⚠</div>
+  <h2>Model Not Found</h2>
+  <p id="error-msg">The 3D model for this dish could not be loaded. Make sure the .glb file is uploaded to your GitHub Pages /models/ folder.</p>
+  <button class="btn-close-page" onclick="closePage()">✕ Close</button>
+</div>
+
+<!-- Top Bar - Logo only, NO menu button -->
+<div class="topbar">
+  <div class="logo-small">AR✦Menu</div>
+</div>
+
+<!-- Swipe Hint -->
+<div class="swipe-hint" id="swipe-hint">
+  <div class="swipe-icon">🔄</div>
+  <p>Drag to rotate • Pinch to zoom</p>
+</div>
+
+<!-- 3D Model Viewer -->
+<model-viewer
+  id="the-model"
+  camera-controls
+  auto-rotate
+  auto-rotate-delay="1000"
+  rotation-per-second="20deg"
+  shadow-intensity="1"
+  shadow-softness="0.5"
+  environment-image="neutral"
+  exposure="1"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  ar-scale="auto"
+  ar-placement="floor"
+  touch-action="pan-y"
+  loading="eager"
+  reveal="manual"
+>
+  <button slot="ar-button" id="ar-slot-btn" style="display:none;"></button>
+</model-viewer>
+
+<!-- Info Panel -->
+<div class="info-panel">
+  <div class="dish-info">
+    <div class="dish-title" id="dish-name-display">Dish Name</div>
+    <div class="dish-meta">
+      <span class="price-tag" id="price-display" style="display:none;"></span>
+      <span class="ar-badge"><span class="ar-dot"></span> AR Ready</span>
+    </div>
+    <div class="actions">
+      <button class="ar-btn btn-ar" id="launch-ar-btn" onclick="launchAR()">
+        📱 View in Your Space (AR)
+      </button>
+      <button class="ar-btn btn-rotate" onclick="toggleAutoRotate()" id="rotate-btn" title="Toggle rotation">
+        ⟳
+      </button>
+    </div>
+    <div class="hint-text">Point your camera at a flat surface to place the dish in AR</div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const modelPath = params.get('model');
+const dishName = params.get('name') || 'Dish';
+const dishPrice = params.get('price') || '';
+
+const modelViewer = document.getElementById('the-model');
+const loading = document.getElementById('loading');
+const errorState = document.getElementById('error-state');
+const swipeHint = document.getElementById('swipe-hint');
+
+document.getElementById('loading-name').textContent = dishName;
+document.getElementById('dish-name-display').textContent = dishName;
+document.title = `${dishName} — AR Menu`;
+
+if (dishPrice) {
+  const priceEl = document.getElementById('price-display');
+  priceEl.textContent = dishPrice;
+  priceEl.style.display = '';
+}
+
+// Close page function - closes tab or goes back
+function closePage() {
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.close();
+  }
+}
+
+if (!modelPath) {
+  loading.classList.add('hidden');
+  errorState.style.display = 'flex';
+  document.getElementById('error-msg').textContent = 'No 3D model path was provided. Please scan a valid QR code from the menu.';
+} else {
+  modelViewer.src = modelPath;
+
+  modelViewer.addEventListener('progress', e => {
+    const pct = Math.round(e.detail.totalProgress * 100);
+    document.getElementById('progress').style.width = pct + '%';
+  });
+
+  modelViewer.addEventListener('load', () => {
+    setTimeout(() => {
+      loading.classList.add('hidden');
+      modelViewer.reveal = 'auto';
+    }, 400);
+    setTimeout(() => {
+      swipeHint.classList.add('hidden');
+    }, 3000);
+  });
+
+  modelViewer.addEventListener('error', () => {
+    loading.classList.add('hidden');
+    errorState.style.display = 'flex';
+    document.getElementById('error-msg').textContent =
+      `Could not load "${modelPath}". Make sure this .glb file is uploaded to your GitHub Pages /models/ folder and the filename matches exactly.`;
+  });
+}
+
+let autoRotating = true;
+
+function toggleAutoRotate() {
+  autoRotating = !autoRotating;
+  modelViewer.autoRotate = autoRotating;
+  document.getElementById('rotate-btn').style.opacity = autoRotating ? '1' : '0.5';
+}
+
+function launchAR() {
+  if (!modelViewer.canActivateAR) {
+    alert('AR is not supported on this device or browser.\n\nFor best AR experience:\n• iOS: Use Safari\n• Android: Use Chrome with ARCore');
+    return;
+  }
+  modelViewer.activateAR();
+}
+
+modelViewer.addEventListener('camera-change', () => {
+  swipeHint.classList.add('hidden');
+});
+
+modelViewer.addEventListener('load', () => {
+  const arBtn = document.getElementById('launch-ar-btn');
+  if (!modelViewer.canActivateAR) {
+    arBtn.style.opacity = '0.6';
+    arBtn.title = 'AR not supported on this device';
+  }
+});
+</script>
+</body>
+</html>

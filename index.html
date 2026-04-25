@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Menu Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #F0D080;
+    --dark: #0D0D0D;
+    --surface: #141414;
+    --surface2: #1E1E1E;
+    --surface3: #2A2A2A;
+    --text: #F0EDE8;
+    --muted: #888;
+    --border: rgba(201,168,76,0.2);
+    --red: #E24B4A;
+    --green: #1D9E75;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(13,13,13,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+  }
+
+  .logo span { color: var(--text); font-weight: 400; }
+
+  .badge {
+    font-size: 11px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid var(--border);
+    color: var(--gold);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--gold);
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 1.05rem;
+    font-weight: 300;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .steps {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .step-arrow {
+    color: var(--border);
+    font-size: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+    margin-bottom: 0.3rem;
+  }
+
+  .card-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  label {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  input[type="text"], input[type="url"], select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--surface3);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.2s;
+    outline: none;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--gold);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .upload-zone {
+    border: 2px dashed var(--surface3);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.05);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .upload-zone h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+  }
+
+  .upload-zone p {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .file-info {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    background: rgba(29,158,117,0.1);
+    border: 1px solid rgba(29,158,117,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 1rem;
+  }
+
+  .file-info.show { display: flex; }
+
+  .file-icon { font-size: 1.5rem; }
+
+  .file-details { flex: 1; }
+
+  .file-name { font-size: 14px; font-weight: 500; }
+
+  .file-size { font-size: 12px; color: var(--muted); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    outline: none;
+  }
+
+  .btn-gold {
+    background: var(--gold);
+    color: #0D0D0D;
+  }
+
+  .btn-gold:hover { background: var(--gold-light); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+
+  .btn-full { width: 100%; justify-content: center; }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Notice - GitHub instructions */
+  .notice {
+    background: rgba(201,168,76,0.07);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .notice h3 {
+    font-size: 14px;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .notice ol {
+    padding-left: 1.2rem;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  .notice code {
+    background: var(--surface3);
+    color: var(--gold-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  /* Menu items list */
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .menu-item-card {
+    background: var(--surface2);
+    border: 1px solid var(--surface3);
+    border-radius: 12px;
+    padding: 1.2rem;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .menu-item-card:hover { border-color: var(--border); }
+
+  .dish-name {
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .dish-price {
+    font-size: 13px;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+
+  .dish-category {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  .model-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+
+  .model-indicator.has-model {
+    background: rgba(29,158,117,0.15);
+    color: #1D9E75;
+  }
+
+  .model-indicator.no-model {
+    background: var(--surface3);
+    color: var(--muted);
+  }
+
+  .item-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .delete-btn {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s;
+  }
+
+  .delete-btn:hover { color: var(--red); }
+
+  /* QR modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--gold);
+    margin-bottom: 0.3rem;
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+  }
+
+  #qr-container {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .ar-url-box {
+    background: var(--surface2);
+    border: 1px solid var(--surface3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    word-break: break-all;
+    text-align: left;
+    margin-bottom: 1rem;
+    font-family: monospace;
+  }
+
+  /* Section toggle */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--surface3);
+  }
+
+  .count-badge {
+    background: var(--surface3);
+    color: var(--gold);
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--muted);
+  }
+
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 2rem;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 7px;
+    text-align: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+    border: none;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tab.active {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(13,13,13,0.3);
+    border-top-color: #0D0D0D;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 999;
+    transition: transform 0.3s;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AR<span>Menu</span></div>
+  <span class="badge">✦ WebAR Builder</span>
+</header>
+
+<div class="container">
+  <div class="hero">
+    <h1>Turn Your Menu Into<br><em>Augmented Reality</em></h1>
+    <p>Upload 3D models for your dishes, generate AR links, scan QR codes — customers see food come alive on the table.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step"><span class="step-num">1</span> Add Dish</div>
+    <span class="step-arrow">→</span>
+    <div class="step"><span class="step-num">2</span> Upload 3D Model</div>
+    <span class="step-arrow">→</span>
+    <div class="step"><span class="step-num">3</span> Get AR Link</div>
+    <span class="step-arrow">→</span>
+    <div class="step"><span class="step-num">4</span> Generate QR</div>
+    <span class="step-arrow">→</span>
+    <div class="step"><span class="step-num">5</span> Deploy on GitHub</div>
+  </div>
+
+  <div class="notice">
+    <h3>⚠ GitHub Pages Setup — Do This First</h3>
+    <ol>
+      <li>Create a GitHub repo (e.g. <code>ar-menu</code>)</li>
+      <li>Upload both <code>index.html</code> and <code>ar-viewer.html</code> to the repo root</li>
+      <li>Create a folder called <code>models/</code> and upload your <code>.glb</code> / <code>.gltf</code> files there</li>
+      <li>Go to <strong>Settings → Pages</strong> → Source: <code>main</code> branch → Save</li>
+      <li>Your base URL will be: <code>https://YOUR-USERNAME.github.io/ar-menu/</code></li>
+      <li>Enter your GitHub Pages URL below, then add dishes</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙ Configuration</div>
+    <div class="card-sub">Set your GitHub Pages base URL once — all AR links will be generated automatically.</div>
+    <div class="form-group">
+      <label>GitHub Pages Base URL</label>
+      <input type="url" id="base-url" placeholder="https://your-username.github.io/ar-menu" />
+    </div>
+    <br>
+    <button class="btn btn-outline btn-sm" onclick="saveConfig()">Save Configuration</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('add')">+ Add Dish</button>
+    <button class="tab" onclick="switchTab('menu')" id="tab-menu">Menu Items</button>
+  </div>
+
+  <!-- ADD DISH TAB -->
+  <div class="tab-panel active" id="panel-add">
+    <div class="card">
+      <div class="card-title">🍽 Dish Details</div>
+      <div class="card-sub">Enter information about the dish and upload its 3D model.</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Dish Name *</label>
+          <input type="text" id="dish-name" placeholder="e.g. Butter Chicken" />
+        </div>
+        <div class="form-group">
+          <label>Price</label>
+          <input type="text" id="dish-price" placeholder="e.g. ₹380" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="dish-category">
+            <option>Starters</option>
+            <option>Main Course</option>
+            <option>Biryani & Rice</option>
+            <option>Breads</option>
+            <option>Desserts</option>
+            <option>Beverages</option>
+            <option>Soups</option>
+            <option>Seafood</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>3D Model Filename (in /models/)</label>
+          <input type="text" id="model-filename" placeholder="e.g. butter-chicken.glb" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label>Description (optional)</label>
+        <textarea id="dish-desc" placeholder="Rich, creamy tomato-based curry..."></textarea>
+      </div>
+
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="model-file" accept=".glb,.gltf" onchange="handleFileSelect(this)" />
+        <div class="upload-icon">📦</div>
+        <h3>Upload 3D Model</h3>
+        <p>Drag & drop .glb or .gltf file here<br>or click to browse</p>
+      </div>
+
+      <div class="file-info" id="file-info">
+        <span class="file-icon">✅</span>
+        <div class="file-details">
+          <div class="file-name" id="file-name-display"></div>
+          <div class="file-size" id="file-size-display"></div>
+        </div>
+      </div>
+
+      <br>
+      <button class="btn btn-gold btn-full" onclick="addDish()" id="add-btn">
+        ✦ Add Dish to Menu
+      </button>
+    </div>
+  </div>
+
+  <!-- MENU ITEMS TAB -->
+  <div class="tab-panel" id="panel-menu">
+    <div class="card">
+      <div class="section-header">
+        <div>
+          <div class="card-title">📋 Your Menu</div>
+          <div class="card-sub" style="margin-bottom:0;">Click "AR Link & QR" on any dish to get the QR code</div>
+        </div>
+        <span class="count-badge" id="dish-count">0 dishes</span>
+      </div>
+
+      <div id="menu-grid" class="menu-grid">
+        <div class="empty-state">
+          <div class="icon">🍽</div>
+          <p>No dishes added yet.<br>Go to "Add Dish" to start building your menu.</p>
+        </div>
+      </div>
+
+      <br>
+      <button class="btn btn-outline btn-sm" onclick="exportMenuJSON()">⬇ Export Menu JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal">
+    <h2 id="modal-dish-name"></h2>
+    <p>Scan to view this dish in Augmented Reality</p>
+    <div id="qr-container"></div>
+    <div class="ar-url-box" id="modal-ar-url"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="downloadQR()">⬇ Download QR</button>
+      <button class="btn btn-outline" onclick="copyARLink()">📋 Copy Link</button>
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let dishes = JSON.parse(localStorage.getItem('ar_menu_dishes') || '[]');
+let selectedFile = null;
+let currentQRDish = null;
+
+function saveConfig() {
+  const url = document.getElementById('base-url').value.trim().replace(/\/$/, '');
+  localStorage.setItem('ar_menu_base_url', url);
+  showToast('Configuration saved!');
+}
+
+function getBaseURL() {
+  return localStorage.getItem('ar_menu_base_url') || window.location.origin;
+}
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('ar_menu_base_url');
+  if (saved) document.getElementById('base-url').value = saved;
+  renderMenu();
+
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) showFileInfo(file);
+  });
+});
+
+function handleFileSelect(input) {
+  if (input.files[0]) showFileInfo(input.files[0]);
+}
+
+function showFileInfo(file) {
+  selectedFile = file;
+  const nameInput = document.getElementById('model-filename');
+  if (!nameInput.value) nameInput.value = file.name;
+  document.getElementById('file-name-display').textContent = file.name;
+  document.getElementById('file-size-display').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+  document.getElementById('file-info').classList.add('show');
+}
+
+function addDish() {
+  const name = document.getElementById('dish-name').value.trim();
+  if (!name) { showToast('Please enter a dish name'); return; }
+
+  const modelFile = document.getElementById('model-filename').value.trim();
+  const baseURL = getBaseURL();
+
+  const dish = {
+    id: Date.now(),
+    name,
+    price: document.getElementById('dish-price').value.trim(),
+    category: document.getElementById('dish-category').value,
+    description: document.getElementById('dish-desc').value.trim(),
+    modelFilename: modelFile || null,
+    arURL: modelFile ? `${baseURL}/ar-viewer.html?model=${encodeURIComponent('models/' + modelFile)}&name=${encodeURIComponent(name)}` : null,
+    addedAt: new Date().toLocaleDateString()
+  };
+
+  dishes.push(dish);
+  localStorage.setItem('ar_menu_dishes', JSON.stringify(dishes));
+
+  document.getElementById('dish-name').value = '';
+  document.getElementById('dish-price').value = '';
+  document.getElementById('dish-desc').value = '';
+  document.getElementById('model-filename').value = '';
+  document.getElementById('file-info').classList.remove('show');
+  selectedFile = null;
+
+  showToast(`"${name}" added to menu!`);
+  switchTab('menu');
+  renderMenu();
+}
+
+function renderMenu() {
+  const grid = document.getElementById('menu-grid');
+  const count = document.getElementById('dish-count');
+  count.textContent = `${dishes.length} dish${dishes.length !== 1 ? 'es' : ''}`;
+  const tabLabel = document.getElementById('tab-menu');
+  tabLabel.textContent = `Menu Items (${dishes.length})`;
+
+  if (dishes.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🍽</div><p>No dishes added yet.<br>Go to "Add Dish" to start building your menu.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = dishes.map(d => `
+    <div class="menu-item-card">
+      <button class="delete-btn" onclick="deleteDish(${d.id})" title="Remove dish">✕</button>
+      <div class="dish-category">${d.category}</div>
+      <div class="dish-name">${d.name}</div>
+      ${d.price ? `<div class="dish-price">${d.price}</div>` : ''}
+      <div class="model-indicator ${d.modelFilename ? 'has-model' : 'no-model'}">
+        ${d.modelFilename ? '✦ 3D model linked' : '○ No 3D model'}
+      </div>
+      <div class="item-actions">
+        ${d.arURL ? `<button class="btn btn-gold btn-sm" onclick="showQR(${d.id})">📱 AR Link & QR</button>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="editModelURL(${d.id})">✎ Edit</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteDish(id) {
+  dishes = dishes.filter(d => d.id !== id);
+  localStorage.setItem('ar_menu_dishes', JSON.stringify(dishes));
+  renderMenu();
+  showToast('Dish removed');
+}
+
+function editModelURL(id) {
+  const dish = dishes.find(d => d.id === id);
+  if (!dish) return;
+  const newFile = prompt('Enter new 3D model filename (in /models/):', dish.modelFilename || '');
+  if (newFile !== null) {
+    const baseURL = getBaseURL();
+    dish.modelFilename = newFile.trim();
+    dish.arURL = newFile.trim()
+      ? `${baseURL}/ar-viewer.html?model=${encodeURIComponent('models/' + newFile.trim())}&name=${encodeURIComponent(dish.name)}`
+      : null;
+    localStorage.setItem('ar_menu_dishes', JSON.stringify(dishes));
+    renderMenu();
+    showToast('Updated!');
+  }
+}
+
+function showQR(id) {
+  const dish = dishes.find(d => d.id === id);
+  if (!dish || !dish.arURL) return;
+  currentQRDish = dish;
+
+  document.getElementById('modal-dish-name').textContent = dish.name;
+  document.getElementById('modal-ar-url').textContent = dish.arURL;
+
+  const container = document.getElementById('qr-container');
+  container.innerHTML = '';
+  new QRCode(container, {
+    text: dish.arURL,
+    width: 200,
+    height: 200,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  document.getElementById('qr-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('qr-modal').classList.remove('show');
+}
+
+function downloadQR() {
+  const canvas = document.querySelector('#qr-container canvas');
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = `qr-${currentQRDish.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+function copyARLink() {
+  if (!currentQRDish) return;
+  navigator.clipboard.writeText(currentQRDish.arURL).then(() => showToast('AR link copied!'));
+}
+
+function exportMenuJSON() {
+  const json = JSON.stringify(dishes, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'menu-data.json';
+  link.click();
+  showToast('Menu exported!');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const idx = name === 'add' ? 0 : 1;
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+document.getElementById('qr-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
